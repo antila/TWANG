@@ -8,6 +8,7 @@ class Conveyor
       int _startPoint;
       int _endPoint;
       int _dir;
+  private:
       bool _alive;
 };
 
@@ -20,4 +21,8 @@ void Conveyor::Spawn(int startPoint, int endPoint, int dir){
 
 void Conveyor::Kill(){
     _alive = false;
+}
+
+bool Conveyor::Alive(){
+    return _alive;
 }

@@ -13,7 +13,7 @@ class Enemy
   private:
     int _dir;
     int _sp;
-    int _alive;
+    bool _alive;
     int _origin;
 };
 
@@ -23,7 +23,7 @@ void Enemy::Spawn(int pos, int dir, int sp, int wobble){
     _wobble = wobble;    // 0 = no, >0 = yes, value is width of wobble
     _origin = pos;
     _sp = sp;
-    _alive = 1;
+    _alive = true;
 }
 
 void Enemy::Tick(){
@@ -51,5 +51,5 @@ bool Enemy::Alive(){
 }
 
 void Enemy::Kill(){
-    _alive = 0;
+    _alive = false;
 }

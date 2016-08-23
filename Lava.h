@@ -14,7 +14,7 @@ class Lava
     long _lastOn;
     bool _isOn;
   private:
-    int _alive;
+    bool _alive;
 };
 
 void Lava::Spawn(int left, int right, int ontime, int offtime, int offset, bool isOn){
@@ -23,15 +23,15 @@ void Lava::Spawn(int left, int right, int ontime, int offtime, int offset, bool 
     _ontime = ontime;
     _offtime = offtime;
     _offset = offset;
-    _alive = 1;
+    _alive = true;
     _lastOn = millis()-offset;
     _isOn = isOn;
 }
 
 void Lava::Kill(){
-    _alive = 0;
+    _alive = false;
 }
 
-int Lava::Alive(){
+bool Lava::Alive(){
     return _alive;
 }
