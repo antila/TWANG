@@ -3,21 +3,21 @@
 class Enemy
 {
   public:
-    void Spawn(int pos, int dir, int sp, int wobble);
+    void Spawn(int pos, char dir, int sp, int wobble);
     void Tick();
     void Kill();
     bool Alive();
     int _pos;
     int _wobble;
-    int playerSide;
+    char playerSide;
   private:
-    int _dir;
+    char _dir;
     int _sp;
     bool _alive;
     int _origin;
 };
 
-void Enemy::Spawn(int pos, int dir, int sp, int wobble){
+void Enemy::Spawn(int pos, char dir, int sp, int wobble){
     _pos = pos;
     _dir = dir;          // 0 = left, 1 = right
     _wobble = wobble;    // 0 = no, >0 = yes, value is width of wobble

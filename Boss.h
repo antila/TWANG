@@ -8,7 +8,7 @@ class Boss
     void Kill();
     bool Alive();
     int _pos;
-    int _lives;
+    byte _lives;
     int _ticks;
   private:
     bool _alive;
