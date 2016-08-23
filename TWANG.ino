@@ -1,4 +1,6 @@
 // Required libs
+#include <EEPROM.h>
+#include <LiquidCrystal.h>
 #include "FastLED.h"
 #include "I2Cdev.h"
 #include "MPU6050.h"
@@ -56,6 +58,12 @@ iSin isin = iSin();
 int joystickTilt = 0;                      // Stores the angle of the joystick
 int joystickWobble = 0;                    // Stores the max amount of acceleration (wobble)
 
+// LCD and stats
+LiquidCrystal lcd(52, 53, 50, 51, 48, 49);
+byte stats_playthroughs = 0;
+int stats_besttime = 0;
+long gameStartTime = 0;
+
 // WOBBLE ATTACK
 #define ATTACK_WIDTH             70         // Width of the wobble attack, world is 1000 wide
 #define ATTACK_DURATION          500        // Duration of a wobble attack (ms)
@@ -104,6 +112,9 @@ void setup() {
 	//Serial.begin(9600);
 	//while (!Serial);
 
+	stats_playthroughs = EEPROM.read(0);
+	stats_besttime = EEPROM_readint(1);
+
 	// MPU
 	Wire.begin();
 	accelgyro.initialize();
@@ -112,6 +123,9 @@ void setup() {
 	FastLED.addLeds<LED_TYPE, DATA_PIN, LED_COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 	FastLED.setBrightness(BRIGHTNESS);
 	FastLED.setDither(1);
+
+	lcd.begin(20, 4);
+	updateStats();
 
 	// Life LEDs
 	loadLevel();
@@ -284,6 +298,7 @@ void loadLevel() {
 		// Left or right?
 		playerPosition = 200;
 		spawnEnemy(1, 0, 0, 0);
+		gameStartTime = millis();
 		break;
 	case 1:
 		// Slow moving enemy
@@ -439,7 +454,18 @@ void cleanupLevel() {
 void levelComplete() {
 	stageStartTime = millis();
 	stage = WIN;
-	if (levelNumber == LEVEL_COUNT) stage = COMPLETE;
+	if (levelNumber == LEVEL_COUNT)
+	{
+		stage = COMPLETE;
+		++stats_playthroughs;
+		EEPROM.write(0, stats_playthroughs);
+		int newBest = (int)((millis() - gameStartTime) / 1000);
+		if (newBest > stats_besttime) {
+			stats_besttime = newBest;
+			EEPROM_writeint(1, stats_besttime);
+		}
+	}
+	updateStats();
 	lives = 3; //min(3, lives + 1);
 }
 
@@ -706,6 +732,29 @@ void screenSaverTick() {
 			}
 		}
 	}
+}
+
+// ---------------------------------
+// -----------   LCD    ------------
+// ---------------------------------
+
+int EEPROM_readint(long address) {
+	return ((EEPROM.read(address) << 0) & 0xFF) + ((EEPROM.read(address + 1) << 8) & 0xFFFF);
+}
+
+void EEPROM_writeint(long address, int value) {
+	EEPROM.write(address, ((value >> 0) & 0xFF));
+	EEPROM.write(address + 1, ((value >> 8) & 0xFF));
+}
+
+void updateStats() {
+	lcd.setCursor(0, 1);
+	lcd.print("Playthroughs: ");
+	lcd.print(stats_playthroughs);
+
+	lcd.setCursor(0, 2);
+	lcd.print("Best time: ");
+	lcd.print(stats_besttime);
 }
 
 // ---------------------------------
