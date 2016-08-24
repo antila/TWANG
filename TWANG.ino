@@ -32,7 +32,7 @@ int16_t gx, gy, gz;
 #define DATA_PIN                   3
 #define LED_TYPE                   WS2812B
 #define LED_COLOR_ORDER            GRB
-#define BRIGHTNESS                 150
+#define BRIGHTNESS                 140
 #define DIRECTION                  1         // 0 = right to left, 1 = left to right
 #define MIN_REDRAW_INTERVAL        20        // Min redraw interval (ms) 33 = 30fps / 16 = 63fps
 #define USE_GRAVITY                0         // 0/1 use gravity (LED strip going up wall)
@@ -47,7 +47,7 @@ int levelNumber = 0;
 long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
-#define MAX_VOLUME                     6
+#define MAX_VOLUME                     10
 iSin isin = iSin();
 
 // JOYSTICK
@@ -80,6 +80,7 @@ int playerPositionModifier;                 // +/- adjustment to player position
 bool playerAlive;
 long killTime;
 int lives = MAX_LIVES;
+int moveAmount = 0;
 
 // POOLS
 Enemy enemyPool[10] = {
@@ -183,7 +184,7 @@ void loop() {
 			// If still not attacking, move!
 			playerPosition += playerPositionModifier;
 			if (!attacking) {
-				int moveAmount = (joystickTilt / 6.0);
+				moveAmount = (joystickTilt / 6.0);
 				if (DIRECTION) moveAmount = -moveAmount;
 				moveAmount = constrain(moveAmount, -MAX_PLAYER_SPEED, MAX_PLAYER_SPEED);
 				playerPosition -= moveAmount;
@@ -466,7 +467,7 @@ void levelComplete() {
 		}
 	}
 	updateStats();
-	lives = 3; //min(3, lives + 1);
+	lives = 3; //min(MAX_LIVES, lives + 1);
 }
 
 void nextLevel() {
@@ -485,7 +486,7 @@ void die() {
 	if (levelNumber > 0) --lives;
 	if (lives == 0) {
 		levelNumber = 0;
-		lives = 3;
+		lives = MAX_LIVES;
 	}
 	for (int p = 0; p < particleCount; ++p) {
 		particlePool[p].Spawn(playerPosition);
@@ -656,11 +657,14 @@ void tickConveyors() {
 			if (playerPosition > conveyorPool[i]._startPoint && playerPosition < conveyorPool[i]._endPoint) {
 				if (dir == -1) {
 					playerPositionModifier = -(MAX_PLAYER_SPEED - 4);
+					if (attacking)
+						playerPositionModifier /= 3;
 				}
 				else {
 					playerPositionModifier = (MAX_PLAYER_SPEED - 4);
+					if (attacking)
+						playerPositionModifier /= 3;
 				}
-        playerPositionModifier = attacking ? playerPositionModifier/2 : playerPositionModifier;
 			}
 		}
 	}
@@ -736,7 +740,7 @@ void screenSaverTick() {
 }
 
 // ---------------------------------
-// -----------   LCD    ------------
+// --------- LCD / Stats -----------
 // ---------------------------------
 
 int EEPROM_readint(long address) {
