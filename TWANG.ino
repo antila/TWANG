@@ -660,6 +660,7 @@ void tickConveyors() {
 				else {
 					playerPositionModifier = (MAX_PLAYER_SPEED - 4);
 				}
+        playerPositionModifier = attacking ? playerPositionModifier/2 : playerPositionModifier;
 			}
 		}
 	}
