@@ -42,7 +42,7 @@ int levelNumber = 0;
 long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
-#define MAX_VOLUME                     6
+#define MAX_VOLUME                     10
 iSin isin = iSin();
 
 // JOYSTICK
@@ -104,8 +104,8 @@ RunningMedian MPUAngleSamples = RunningMedian(5);
 RunningMedian MPUWobbleSamples = RunningMedian(5);
 
 void setup() {
-	//Serial.begin(9600);
-	//while (!Serial);
+	Serial.begin(9600);
+	while (!Serial);
 
 	stats_playthroughs = EEPROM.read(0);
 	stats_besttime = EEPROM_readint(1);
@@ -445,6 +445,9 @@ void cleanupLevel() {
 }
 
 void levelComplete() {
+	Serial.println("level complete");
+	Serial.print("next: ");
+	Serial.println(levelNumber);
 	stageStartTime = millis();
 	stage = WIN;
 	if (levelNumber == LEVEL_COUNT)
@@ -560,7 +563,7 @@ void drawPlayer() {
 
 void drawExit() {
 	if (!boss.Alive()) {
-		leds.setRGB(leds.mapPos(1000), 0, 0, 255);
+		leds.setRGB(leds.numLeds - MAX_LIVES - 1, 0, 0, 255);
 	}
 }
 
@@ -667,13 +670,9 @@ void drawAttack() {
 
 bool inLava(int pos) {
 	// Returns if the player is in active lava
-	int i;
-	Lava LP;
-	for (i = 0; i < lavaCount; ++i) {
-		LP = lavaPool[i];
-		if (LP.Alive() && LP._isOn) {
-			if (LP._left < pos && LP._right > pos) return true;
-		}
+	for (int i = 0; i < lavaCount; ++i) {
+		if (lavaPool[i].contains(pos))
+			return true;
 	}
 	return false;
 }
@@ -712,7 +711,7 @@ void screenSaverTick() {
 }
 
 // ---------------------------------
-// -----------   LCD    ------------
+// --------- LCD / Stats -----------
 // ---------------------------------
 
 int EEPROM_readint(long address) {

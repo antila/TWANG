@@ -6,6 +6,7 @@ public:
 	void Spawn(int left, int right, int ontime, int offtime, int offset, bool isOn);
 	void Kill();
 	bool Alive();
+	bool contains(int pos);
 	int _left;
 	int _right;
 	int _ontime;
@@ -34,4 +35,8 @@ void Lava::Kill() {
 
 bool Lava::Alive() {
 	return _alive;
+}
+
+bool Lava::contains(int pos) {
+	return Alive() && _isOn && _left < pos && _right > pos;
 }
