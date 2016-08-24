@@ -1,7 +1,6 @@
 // Required libs
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
-#include "FastLED.h"
 #include "I2Cdev.h"
 #include "MPU6050.h"
 #include "Wire.h"
@@ -10,6 +9,7 @@
 #include "RunningMedian.h"
 
 // Included libs
+#include "LEDS.h"
 #include "Enemy.h"
 #include "Particle.h"
 #include "Spawner.h"
@@ -28,11 +28,6 @@ int16_t gx, gy, gz;
 // ATmega1284P / ATmega644:         Pin 12, 13
 
 // LED setup
-#define NUM_LEDS                   287
-#define DATA_PIN                   3
-#define LED_TYPE                   WS2812B
-#define LED_COLOR_ORDER            GRB
-#define BRIGHTNESS                 150
 #define DIRECTION                  1         // 0 = right to left, 1 = left to right
 #define MIN_REDRAW_INTERVAL        20        // Min redraw interval (ms) 33 = 30fps / 16 = 63fps
 #define USE_GRAVITY                0         // 0/1 use gravity (LED strip going up wall)
@@ -104,7 +99,7 @@ Conveyor conveyorPool[2] = {
 int const conveyorCount = 2;
 Boss boss = Boss();
 
-CRGB leds[NUM_LEDS];
+Display leds;
 RunningMedian MPUAngleSamples = RunningMedian(5);
 RunningMedian MPUWobbleSamples = RunningMedian(5);
 
@@ -120,9 +115,7 @@ void setup() {
 	accelgyro.initialize();
 
 	// Fast LED
-	FastLED.addLeds<LED_TYPE, DATA_PIN, LED_COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-	FastLED.setBrightness(BRIGHTNESS);
-	FastLED.setDither(1);
+	leds.init(MAX_LIVES);
 
 	lcd.begin(20, 4);
 	updateStats();
@@ -200,7 +193,7 @@ void loop() {
 			}
 
 			// Ticks and draw calls
-			FastLED.clear();
+			leds.clear();
 			tickConveyors();
 			tickSpawners();
 			tickBoss();
@@ -213,58 +206,58 @@ void loop() {
 			break;
 		case DEAD:
 			// DEAD
-			FastLED.clear();
+			leds.clear();
 			if (!tickParticles()) {
 				loadLevel();
 			}
 			break;
 		case WIN:
 			// LEVEL COMPLETE
-			FastLED.clear();
+			leds.clear();
 			if (stageStartTime + 500 > mm) {
-				int n = max(map(((mm - stageStartTime)), 0, 500, NUM_LEDS, 0), 0);
-				for (int i = NUM_LEDS; i >= n; i--) {
+				int n = max(map(((mm - stageStartTime)), 0, 500, leds.numLeds, 0), 0);
+				for (int i = leds.numLeds; i >= n; i--) {
 					brightness = 255;
-					leds[i] = CRGB(0, brightness, 0);
+					leds.setRGB(i, 0, brightness, 0);
 				}
 				SFXwin();
 			}
 			else if (stageStartTime + 1000 > mm) {
-				int n = max(map(((mm - stageStartTime)), 500, 1000, NUM_LEDS, 0), 0);
+				int n = max(map(((mm - stageStartTime)), 500, 1000, leds.numLeds, 0), 0);
 				for (int i = 0; i < n; ++i) {
 					brightness = 255;
-					leds[i] = CRGB(0, brightness, 0);
+					leds.setRGB(i, 0, brightness, 0);
 				}
 				SFXwin();
 			}
 			else if (stageStartTime + 1200 > mm) {
-				leds[0] = CRGB(0, 255, 0);
+				leds.setRGB(0, 0, 255, 0);
 			}
 			else {
 				nextLevel();
 			}
 			break;
 		case COMPLETE:
-			FastLED.clear();
+			leds.clear();
 			SFXcomplete();
 			if (stageStartTime + 500 > mm) {
-				int n = max(map(((mm - stageStartTime)), 0, 500, NUM_LEDS, 0), 0);
-				for (int i = NUM_LEDS; i >= n; i--) {
+				int n = max(map(((mm - stageStartTime)), 0, 500, leds.numLeds, 0), 0);
+				for (int i = leds.numLeds; i >= n; i--) {
 					brightness = (sin(((i * 10) + mm) / 500.0) + 1) * 255;
-					leds[i].setHSV(brightness, 255, 50);
+					leds.setHSV(i, brightness, 255, 50);
 				}
 			}
 			else if (stageStartTime + 5000 > mm) {
-				for (int i = NUM_LEDS; i >= 0; i--) {
+				for (int i = leds.numLeds; i >= 0; i--) {
 					brightness = (sin(((i * 10) + mm) / 500.0) + 1) * 255;
-					leds[i].setHSV(brightness, 255, 50);
+					leds.setHSV(i, brightness, 255, 50);
 				}
 			}
 			else if (stageStartTime + 5500 > mm) {
-				int n = max(map(((mm - stageStartTime)), 5000, 5500, NUM_LEDS, 0), 0);
+				int n = max(map(((mm - stageStartTime)), 5000, 5500, leds.numLeds, 0), 0);
 				for (int i = 0; i < n; ++i) {
 					brightness = (sin(((i * 10) + mm) / 500.0) + 1) * 255;
-					leds[i].setHSV(brightness, 255, 50);
+					leds.setHSV(i, brightness, 255, 50);
 				}
 			}
 			else {
@@ -273,14 +266,14 @@ void loop() {
 			break;
 		case GAMEOVER:
 			// GAME OVER!
-			FastLED.clear();
+			leds.clear();
 			stageStartTime = 0;
 			break;
 		}
 
 		//Serial.print(millis() - mm);
 		//Serial.print(" - ");
-		FastLED.show();
+		leds.show();
 		//Serial.println(millis() - mm);
 	}
 }
@@ -515,7 +508,7 @@ void tickEnemies() {
 			}
 			// Draw (if still alive)
 			if (enemyPool[i].Alive()) {
-				leds[getLED(enemyPool[i]._pos)].setRGB(255, 0, 0);
+				leds.setRGB(leds.mapPos(enemyPool[i]._pos), 255, 0, 0);
 			}
 			// Hit player?
 			if (
@@ -533,20 +526,20 @@ void tickBoss() {
 	// DRAW
 	if (boss.Alive()) {
 		++boss._ticks;
-		for (int i = getLED(boss._pos - BOSS_WIDTH / 2); i <= getLED(boss._pos + BOSS_WIDTH / 2); i++) {
-			leds[i] = CRGB::DarkRed;
-			leds[i] %= 100;
+		for (int i = leds.mapPos(boss._pos - BOSS_WIDTH / 2); i <= leds.mapPos(boss._pos + BOSS_WIDTH / 2); i++) {
+			leds.setRGB(i, CRGB::DarkRed);
+			//leds[i] %= 100; ???
 		}
 		// CHECK COLLISION
-		if (getLED(playerPosition) > getLED(boss._pos - BOSS_WIDTH / 2) && getLED(playerPosition) < getLED(boss._pos + BOSS_WIDTH)) {
+		if (leds.mapPos(playerPosition) > leds.mapPos(boss._pos - BOSS_WIDTH / 2) && leds.mapPos(playerPosition) < leds.mapPos(boss._pos + BOSS_WIDTH)) {
 			die();
 			return;
 		}
 		// CHECK FOR ATTACK
 		if (attacking) {
 			if (
-				(getLED(playerPosition + (ATTACK_WIDTH / 2)) >= getLED(boss._pos - BOSS_WIDTH / 2) && getLED(playerPosition + (ATTACK_WIDTH / 2)) <= getLED(boss._pos + BOSS_WIDTH / 2)) ||
-				(getLED(playerPosition - (ATTACK_WIDTH / 2)) <= getLED(boss._pos + BOSS_WIDTH / 2) && getLED(playerPosition - (ATTACK_WIDTH / 2)) >= getLED(boss._pos - BOSS_WIDTH / 2))
+				(leds.mapPos(playerPosition + (ATTACK_WIDTH / 2)) >= leds.mapPos(boss._pos - BOSS_WIDTH / 2) && leds.mapPos(playerPosition + (ATTACK_WIDTH / 2)) <= leds.mapPos(boss._pos + BOSS_WIDTH / 2)) ||
+				(leds.mapPos(playerPosition - (ATTACK_WIDTH / 2)) <= leds.mapPos(boss._pos + BOSS_WIDTH / 2) && leds.mapPos(playerPosition - (ATTACK_WIDTH / 2)) >= leds.mapPos(boss._pos - BOSS_WIDTH / 2))
 				) {
 				boss.Hit();
 				if (boss.Alive()) {
@@ -562,12 +555,12 @@ void tickBoss() {
 }
 
 void drawPlayer() {
-	leds[getLED(playerPosition)].setRGB(0, 255, 0);
+	leds.setRGB(leds.mapPos(playerPosition), 0, 255, 0);
 }
 
 void drawExit() {
 	if (!boss.Alive()) {
-		leds[NUM_LEDS - MAX_LIVES - 1].setRGB(0, 0, 255);
+		leds.setRGB(leds.mapPos(1000), 0, 0, 255);
 	}
 }
 
@@ -575,7 +568,7 @@ void drawLives() {
 	// Updates the life LEDs to show how many lives the player has left
 	for (int i = 1; i <= MAX_LIVES; ++i) {
 		int val = lives >= i ? 100 : 0;
-		leds[NUM_LEDS - i].setRGB(val, 0, val);
+		leds.setRGB(leds.numLeds - i, val, 0, val);
 	}
 }
 
@@ -598,15 +591,15 @@ void tickLava() {
 		flicker = random8(5);
 		Lava &LP = lavaPool[i];
 		if (LP.Alive()) {
-			A = getLED(LP._left);
-			B = getLED(LP._right);
+			A = leds.mapPos(LP._left);
+			B = leds.mapPos(LP._right);
 			if (LP._isOn) {
 				if (LP._lastOn + LP._ontime < mm) {
 					LP._isOn = false;
 					LP._lastOn = mm;
 				}
 				for (p = A; p <= B; ++p) {
-					leds[p] = CRGB(75 + flicker, 50 + flicker, 0);
+					leds.setRGB(p, 75 + flicker, 50 + flicker, 0);
 				}
 			}
 			else {
@@ -615,7 +608,7 @@ void tickLava() {
 					LP._lastOn = mm;
 				}
 				for (p = A; p <= B; ++p) {
-					leds[p].setRGB(3 + flicker, (3 + flicker) / 1.5, 0);
+					leds.setRGB(p, 3 + flicker, (3 + flicker) / 1.5, 0);
 				}
 			}
 		}
@@ -628,7 +621,7 @@ bool tickParticles() {
 	for (int p = 0; p < particleCount; ++p) {
 		if (particlePool[p].Alive()) {
 			particlePool[p].Tick(USE_GRAVITY);
-			leds[getLED(particlePool[p]._pos)] += CRGB(particlePool[p]._power, 0, 0);
+			leds.addRGB(leds.mapPos(particlePool[p]._pos), particlePool[p]._power, 0, 0);
 			stillActive = true;
 		}
 	}
@@ -636,31 +629,20 @@ bool tickParticles() {
 }
 
 void tickConveyors() {
-	int b, dir, n, i, ss, ee, led;
-	long m = 10000 + millis();
 	playerPositionModifier = 0;
 
-	for (i = 0; i < conveyorCount; ++i) {
+	for (int i = 0; i < conveyorCount; ++i) {
 		if (conveyorPool[i].Alive()) {
-			dir = conveyorPool[i]._dir;
-			ss = getLED(conveyorPool[i]._startPoint);
-			ee = getLED(conveyorPool[i]._endPoint);
-			for (led = ss; led < ee; led++) {
-				b = 5;
-				n = (-led + (m / 100)) % 5;
-				if (dir == -1) n = (led + (m / 100)) % 5;
-				b = (5 - n) / 2.0;
-				if (b > 0) leds[led].setRGB(0, 0, b);
-			}
+			conveyorPool[i].Animate(leds);
 
-			if (playerPosition > conveyorPool[i]._startPoint && playerPosition < conveyorPool[i]._endPoint) {
-				if (dir == -1) {
+			if (conveyorPool[i].contains(playerPosition)) {
+				if (conveyorPool[i]._dir == -1) {
 					playerPositionModifier = -(MAX_PLAYER_SPEED - 4);
 				}
 				else {
 					playerPositionModifier = (MAX_PLAYER_SPEED - 4);
 				}
-        playerPositionModifier = attacking ? playerPositionModifier/2 : playerPositionModifier;
+				playerPositionModifier = attacking ? playerPositionModifier/3 : playerPositionModifier;
 			}
 		}
 	}
@@ -669,24 +651,18 @@ void tickConveyors() {
 void drawAttack() {
 	if (!attacking) return;
 	int n = map(millis() - attackMillis, 0, ATTACK_DURATION, 100, 5);
-	for (int i = getLED(playerPosition - (ATTACK_WIDTH / 2)) + 1; i <= getLED(playerPosition + (ATTACK_WIDTH / 2)) - 1; ++i) {
-		leds[i].setRGB(0, 0, n);
+	for (int i = leds.mapPos(playerPosition - (ATTACK_WIDTH / 2)) + 1; i <= leds.mapPos(playerPosition + (ATTACK_WIDTH / 2)) - 1; ++i) {
+		leds.setRGB(i, 0, 0, n);
 	}
 	if (n > 90) {
 		n = 255;
-		leds[getLED(playerPosition)].setRGB(255, 255, 255);
 	}
 	else {
 		n = 0;
-		leds[getLED(playerPosition)].setRGB(0, 255, 0);
 	}
-	leds[getLED(playerPosition - (ATTACK_WIDTH / 2))].setRGB(n, n, 255);
-	leds[getLED(playerPosition + (ATTACK_WIDTH / 2))].setRGB(n, n, 255);
-}
-
-int getLED(int pos) {
-	// The world is 1000 pixels wide, this converts world units into an LED number
-	return constrain((int)map(pos, 0, 1000, 0, NUM_LEDS - MAX_LIVES - 1), 0, NUM_LEDS - MAX_LIVES - 1);
+	leds.setRGB(leds.mapPos(playerPosition), n, 255, n);
+	leds.setRGB(leds.mapPos(playerPosition - (ATTACK_WIDTH / 2)), n, n, 255);
+	leds.setRGB(leds.mapPos(playerPosition + (ATTACK_WIDTH / 2)), n, n, 255);
 }
 
 bool inLava(int pos) {
@@ -710,26 +686,26 @@ void screenSaverTick() {
 	long mm = millis();
 	int mode = (mm / 20000) % 2;
 
-	for (i = 0; i < NUM_LEDS; ++i) {
-		leds[i].nscale8(250);
+	for (i = 0; i < leds.numLeds; ++i) {
+		leds.nscale8(i, 250);
 	}
 	if (mode == 0) {
 		// Marching green <> orange
 		n = (mm / 250) % 10;
 		b = 10 + ((sin(mm / 500.00) + 1) * 20.00);
 		c = 20 + ((sin(mm / 5000.00) + 1) * 33);
-		for (i = 0; i < NUM_LEDS; ++i) {
+		for (i = 0; i < leds.numLeds; ++i) {
 			if (i % 10 == n) {
-				leds[i].setHSV(c, 255, 150);
+				leds.setHSV(i, c, 255, 150);
 			}
 		}
 	}
 	else if (mode == 1) {
 		// Random flashes
 		randomSeed(mm);
-		for (i = 0; i < NUM_LEDS; ++i) {
+		for (i = 0; i < leds.numLeds; ++i) {
 			if (random8(200) == 0) {
-				leds[i].setHSV(25, 255, 100);
+				leds.setHSV(i, 25, 255, 100);
 			}
 		}
 	}
