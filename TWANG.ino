@@ -181,12 +181,13 @@ void loop() {
 				attacking = 1;
 			}
 
+			moveAmount = (joystickTilt / 6.0);
+			if (DIRECTION) moveAmount = -moveAmount;
+			moveAmount = constrain(moveAmount, -MAX_PLAYER_SPEED, MAX_PLAYER_SPEED);
+
 			// If still not attacking, move!
 			playerPosition += playerPositionModifier;
 			if (!attacking) {
-				moveAmount = (joystickTilt / 6.0);
-				if (DIRECTION) moveAmount = -moveAmount;
-				moveAmount = constrain(moveAmount, -MAX_PLAYER_SPEED, MAX_PLAYER_SPEED);
 				playerPosition -= moveAmount;
 				if (playerPosition < 0) playerPosition = 0;
 				if (playerPosition >= 1000 && !boss.Alive()) {
@@ -334,10 +335,10 @@ void loadLevel() {
 		spawnEnemy(500, 1, 7, 275);
 		break;
 	case 7:
-		// drainage
-		spawnConveyor(100, 500, 1);
+		// Drainage
+		spawnConveyor(100, 600, 1);
 		spawnConveyor(600, 1000, -1);
-		spawnEnemy(800, 0, 0, 0);
+		spawnEnemy(600, 0, 0, 0);
 		spawnPool[0].Spawn(1000, 5500, 3, 0, 0);
 		break;
 	case 8:
@@ -368,13 +369,13 @@ void loadLevel() {
 		break;
 	case 11:
 		// pushed towards lava
-		spawnConveyor(100, 790, 1);
+		spawnConveyor(100, 800, 1);
 		spawnLava(800, 850, 1000, 2000, 0, false);
-		spawnPool[0].Spawn(1000, 2500, 4, 0, 0);
+		spawnPool[0].Spawn(1000, 2000, 4, 0, 0);
 		break;
 	case 12:
-		// Boss
-		spawnPool[0].Spawn(0, 2500, 6, 1, 7000);
+		// quick lava
+		spawnPool[0].Spawn(0, 2300, 6, 1, 7000);
 		spawnLava(200, 400, 1000, 2000, 0, false);
 		spawnLava(600, 800, 1000, 2000, 0, false);
 		spawnPool[1].Spawn(1000, 2500, 6, 0, 1000);
@@ -657,12 +658,12 @@ void tickConveyors() {
 			if (playerPosition > conveyorPool[i]._startPoint && playerPosition < conveyorPool[i]._endPoint) {
 				if (dir == -1) {
 					playerPositionModifier = -(MAX_PLAYER_SPEED - 4);
-					if (attacking)
+					if (attacking && moveAmount < 0)
 						playerPositionModifier /= 3;
 				}
 				else {
 					playerPositionModifier = (MAX_PLAYER_SPEED - 4);
-					if (attacking)
+					if (attacking && moveAmount > 0)
 						playerPositionModifier /= 3;
 				}
 			}
