@@ -42,8 +42,8 @@ int16_t gx, gy, gz;
 // GAME
 enum Stage { SCREENSAVER, PLAY, COMPLETE, DEAD, WIN, GAMEOVER };
 
-long previousMillis = 0;                     // Time of the last redraw
-int levelNumber = 0;
+long previousMillis = 0;                   // Time of the last redraw
+int levelNumber =                      0;
 long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
@@ -461,12 +461,12 @@ void levelComplete() {
 		++stats_playthroughs;
 		EEPROM.write(0, stats_playthroughs);
 		int newBest = (int)((millis() - gameStartTime) / 1000);
-		if (newBest > stats_besttime) {
+		if (newBest < stats_besttime) {
 			stats_besttime = newBest;
 			EEPROM_writeint(1, stats_besttime);
 		}
+		updateStats();
 	}
-	updateStats();
 	lives = 3; //min(MAX_LIVES, lives + 1);
 }
 
@@ -758,8 +758,16 @@ void updateStats() {
 	lcd.print(stats_playthroughs);
 
 	lcd.setCursor(0, 2);
-	lcd.print("Best time: ");
-	lcd.print(stats_besttime);
+	lcd.print("Best time:    ");
+	int v = int(stats_besttime / 60);
+	if (v < 10)
+		lcd.print("0");
+	lcd.print(v);
+	lcd.print(":");
+	v = stats_besttime - v * 60;
+	if (v < 10)
+		lcd.print("0");
+	lcd.print(v);
 }
 
 // ---------------------------------
