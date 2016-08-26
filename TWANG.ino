@@ -48,7 +48,6 @@ long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
 #define MAX_VOLUME                     10
-iSin isin = iSin();
 
 // JOYSTICK
 #define JOYSTICK_ORIENTATION     1         // 0, 1 or 2 to set the angle of the joystick
@@ -62,6 +61,7 @@ int joystickWobble = 0;                    // Stores the max amount of accelerat
 LiquidCrystal lcd(52, 53, 50, 51, 48, 49);
 byte stats_playthroughs = 0;
 int stats_besttime = 0;
+int lastPlaythrough = 0;
 long gameStartTime = 0;
 
 // WOBBLE ATTACK
@@ -82,27 +82,23 @@ long killTime;
 int lives = MAX_LIVES;
 int moveAmount = 0;
 
+
 // POOLS
-Enemy enemyPool[10] = {
-	Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy()
-};
-int const enemyCount = 10;
-Particle particlePool[40] = {
-	Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle()
-};
-int const particleCount = 40;
-Spawner spawnPool[2] = {
-	Spawner(), Spawner()
-};
-int const spawnCount = 2;
-Lava lavaPool[4] = {
-	Lava(), Lava(), Lava(), Lava()
-};
-int const lavaCount = 4;
-Conveyor conveyorPool[2] = {
-	Conveyor(), Conveyor()
-};
-int const conveyorCount = 2;
+#define enemyCount 10
+Enemy enemyPool[enemyCount];
+
+#define particleCount 40
+Particle particlePool[particleCount];
+
+#define spawnCount 2
+Spawner spawnPool[spawnCount];
+
+#define lavaCount 4
+Lava lavaPool[lavaCount];
+
+#define conveyorCount 2
+Conveyor conveyorPool[conveyorCount];
+
 Boss boss = Boss();
 
 CRGB leds[NUM_LEDS];
@@ -301,6 +297,8 @@ void loadLevel() {
 		playerPosition = 200;
 		spawnEnemy(1, 0, 0, 0);
 		gameStartTime = millis();
+		lastPlaythrough = 0;
+		updateStats();
 		break;
 	case 1:
 		// Slow moving enemy
@@ -461,9 +459,9 @@ void levelComplete() {
 		stage = COMPLETE;
 		++stats_playthroughs;
 		EEPROM.write(0, stats_playthroughs);
-		int newBest = (int)((millis() - gameStartTime) / 1000);
-		if (newBest < stats_besttime) {
-			stats_besttime = newBest;
+		lastPlaythrough = (int)((millis() - gameStartTime) / 1000);
+		if (lastPlaythrough < stats_besttime) {
+			stats_besttime = lastPlaythrough;
 			EEPROM_writeint(1, stats_besttime);
 		}
 		updateStats();
@@ -760,12 +758,23 @@ void updateStats() {
 
 	lcd.setCursor(0, 2);
 	lcd.print("Best time:    ");
-	int v = int(stats_besttime / 60);
+	printTime(stats_besttime);
+	
+	if (lastPlaythrough > 0)
+	{
+		lcd.setCursor(0, 3);
+		lcd.print("Your time:    ");
+		printTime(lastPlaythrough);
+	}
+}
+
+void printTime(long seconds) {
+	int v = int(seconds / 60);
 	if (v < 10)
 		lcd.print("0");
 	lcd.print(v);
 	lcd.print(":");
-	v = stats_besttime - v * 60;
+	v = seconds - v * 60;
 	if (v < 10)
 		lcd.print("0");
 	lcd.print(v);
