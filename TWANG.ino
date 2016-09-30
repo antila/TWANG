@@ -1,6 +1,6 @@
 // Required libs
-#include <EEPROM.h>
-#include <LiquidCrystal.h>
+//#include <EEPROM.h>
+//#include <LiquidCrystal.h>
 #include "FastLED.h"
 #include "I2Cdev.h"
 #include "MPU6050.h"
@@ -32,7 +32,7 @@ int16_t gx, gy, gz;
 #define DATA_PIN                   3
 #define LED_TYPE                   WS2812B
 #define LED_COLOR_ORDER            GRB
-#define BRIGHTNESS                 140
+#define BRIGHTNESS                 150
 #define DIRECTION                  1         // 0 = right to left, 1 = left to right
 #define MIN_REDRAW_INTERVAL        20        // Min redraw interval (ms) 33 = 30fps / 16 = 63fps
 #define USE_GRAVITY                0         // 0/1 use gravity (LED strip going up wall)
@@ -43,7 +43,7 @@ int16_t gx, gy, gz;
 enum Stage { SCREENSAVER, PLAY, COMPLETE, DEAD, WIN, GAMEOVER };
 
 long previousMillis = 0;                   // Time of the last redraw
-int levelNumber =                      0;
+int levelNumber =                      4;
 long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
@@ -53,16 +53,16 @@ iSin isin = iSin();
 // JOYSTICK
 #define JOYSTICK_ORIENTATION     1         // 0, 1 or 2 to set the angle of the joystick
 #define JOYSTICK_DIRECTION       1         // 0/1 to flip joystick direction
-#define ATTACK_THRESHOLD         25000     // The threshold that triggers an attack
-#define JOYSTICK_DEADZONE        10        // Angle to ignore
+#define ATTACK_THRESHOLD         24000     // The threshold that triggers an attack
+#define JOYSTICK_DEADZONE        20        // Angle to ignore
 int joystickTilt = 0;                      // Stores the angle of the joystick
 int joystickWobble = 0;                    // Stores the max amount of acceleration (wobble)
 
 // LCD and stats
-LiquidCrystal lcd(52, 53, 50, 51, 48, 49);
-byte stats_playthroughs = 0;
-int stats_besttime = 0;
-long gameStartTime = 0;
+//LiquidCrystal lcd(52, 53, 50, 51, 48, 49);
+//byte stats_playthroughs = 0;
+//int stats_besttime = 0;
+//long gameStartTime = 0;
 
 // WOBBLE ATTACK
 #define ATTACK_WIDTH             70         // Width of the wobble attack, world is 1000 wide
@@ -83,26 +83,17 @@ int lives = MAX_LIVES;
 int moveAmount = 0;
 
 // POOLS
-Enemy enemyPool[10] = {
-	Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy(), Enemy()
-};
 int const enemyCount = 10;
-Particle particlePool[40] = {
-	Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle(), Particle()
-};
 int const particleCount = 40;
-Spawner spawnPool[2] = {
-	Spawner(), Spawner()
-};
 int const spawnCount = 2;
-Lava lavaPool[4] = {
-	Lava(), Lava(), Lava(), Lava()
-};
-int const lavaCount = 4;
-Conveyor conveyorPool[2] = {
-	Conveyor(), Conveyor()
-};
+int const lavaCount = 5;
 int const conveyorCount = 2;
+
+Enemy enemyPool[enemyCount];
+Particle particlePool[particleCount];
+Spawner spawnPool[spawnCount];
+Lava lavaPool[lavaCount];
+Conveyor conveyorPool[conveyorCount];
 Boss boss = Boss();
 
 CRGB leds[NUM_LEDS];
@@ -113,20 +104,20 @@ void setup() {
 	//Serial.begin(9600);
 	//while (!Serial);
 
-	stats_playthroughs = EEPROM.read(0);
-	stats_besttime = EEPROM_readint(1);
+	//stats_playthroughs = EEPROM.read(0);
+	//stats_besttime = EEPROM_readint(1);
 
 	// MPU
 	Wire.begin();
 	accelgyro.initialize();
 
 	// Fast LED
-	FastLED.addLeds<LED_TYPE, DATA_PIN, LED_COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+	FastLED.addLeds<LED_TYPE, DATA_PIN, LED_COLOR_ORDER>(leds, NUM_LEDS);//.setCorrection(TypicalLEDStrip);
 	FastLED.setBrightness(BRIGHTNESS);
-	FastLED.setDither(1);
+	//FastLED.setDither(1);
 
-	lcd.begin(20, 4);
-	updateStats();
+	//lcd.begin(20, 4);
+	//updateStats();
 
 	// Life LEDs
 	loadLevel();
@@ -300,7 +291,7 @@ void loadLevel() {
 		// Left or right?
 		playerPosition = 200;
 		spawnEnemy(1, 0, 0, 0);
-		gameStartTime = millis();
+		//gameStartTime = millis();
 		break;
 	case 1:
 		// Slow moving enemy
@@ -320,7 +311,7 @@ void loadLevel() {
 		spawnLava(195, 300, 2000, 2000, 0, false);
 		spawnLava(360, 455, 2000, 2000, 0, false);
 		spawnLava(520, 610, 2000, 2000, 0, false);
-		spawnLava(670, 770, 2000, 2000, 0, false);
+    spawnLava(670, 770, 2000, 2000, 0, false);
 		spawnPool[0].Spawn(1000, 3800, 4, 0, 0);
 		break;
 	case 5:
@@ -459,6 +450,7 @@ void levelComplete() {
 	if (levelNumber == LEVEL_COUNT)
 	{
 		stage = COMPLETE;
+   /*
 		++stats_playthroughs;
 		EEPROM.write(0, stats_playthroughs);
 		int newBest = (int)((millis() - gameStartTime) / 1000);
@@ -467,6 +459,7 @@ void levelComplete() {
 			EEPROM_writeint(1, stats_besttime);
 		}
 		updateStats();
+    */
 	}
 	lives = 3; //min(MAX_LIVES, lives + 1);
 }
@@ -743,7 +736,7 @@ void screenSaverTick() {
 // ---------------------------------
 // --------- LCD / Stats -----------
 // ---------------------------------
-
+/*
 int EEPROM_readint(long address) {
 	return ((EEPROM.read(address) << 0) & 0xFF) + ((EEPROM.read(address + 1) << 8) & 0xFFFF);
 }
@@ -770,7 +763,7 @@ void updateStats() {
 		lcd.print("0");
 	lcd.print(v);
 }
-
+*/
 // ---------------------------------
 // ----------- JOYSTICK ------------
 // ---------------------------------
