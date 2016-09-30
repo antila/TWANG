@@ -49,7 +49,6 @@ long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
 #define MAX_VOLUME                     10
-iSin isin = iSin();
 
 // JOYSTICK
 #define JOYSTICK_ORIENTATION     1         // 0, 1 or 2 to set the angle of the joystick
@@ -63,6 +62,7 @@ int joystickWobble = 0;                    // Stores the max amount of accelerat
 //LiquidCrystal lcd(52, 53, 50, 51, 48, 49);
 //byte stats_playthroughs = 0;
 //int stats_besttime = 0;
+//int lastPlaythrough = 0;
 //long gameStartTime = 0;
 
 // WOBBLE ATTACK
@@ -82,6 +82,7 @@ bool playerAlive;
 long killTime;
 int lives = MAX_LIVES;
 int moveAmount = 0;
+
 
 // POOLS
 int const enemyCount = 10;
@@ -293,6 +294,8 @@ void loadLevel() {
 		playerPosition = 200;
 		spawnEnemy(1, 0, 0, 0);
 		//gameStartTime = millis();
+		//lastPlaythrough = 0;
+		//updateStats();
 		break;
 	case 1:
 		// Slow moving enemy
@@ -451,16 +454,16 @@ void levelComplete() {
 	if (levelNumber == LEVEL_COUNT)
 	{
 		stage = COMPLETE;
-   /*
+	/*
 		++stats_playthroughs;
 		EEPROM.write(0, stats_playthroughs);
-		int newBest = (int)((millis() - gameStartTime) / 1000);
-		if (newBest < stats_besttime) {
-			stats_besttime = newBest;
+		lastPlaythrough = (int)((millis() - gameStartTime) / 1000);
+		if (lastPlaythrough < stats_besttime) {
+			stats_besttime = lastPlaythrough;
 			EEPROM_writeint(1, stats_besttime);
 		}
 		updateStats();
-    */
+	*/
 	}
 	lives = 3; //min(MAX_LIVES, lives + 1);
 }
@@ -602,7 +605,7 @@ void tickLava() {
 					LP._lastOn = mm;
 				}
 				for (p = A; p <= B; ++p) {
-          leds[p].setRGB(30 + flicker, 15 + flicker, 0);
+					leds[p].setRGB(30 + flicker, 15 + flicker, 0);
 				}
 			}
 			else {
@@ -610,7 +613,7 @@ void tickLava() {
 					LP._isOn = true;
 					LP._lastOn = mm;
 				}
-        flicker /= 1.75;
+				flicker /= 1.75;
 				for (p = A; p <= B; ++p) {
 					leds[p].setRGB(4 + flicker, (3 + flicker) / 1.75, 0);
 				}
@@ -754,12 +757,23 @@ void updateStats() {
 
 	lcd.setCursor(0, 2);
 	lcd.print("Best time:    ");
-	int v = int(stats_besttime / 60);
+	printTime(stats_besttime);
+	
+	if (lastPlaythrough > 0)
+	{
+		lcd.setCursor(0, 3);
+		lcd.print("Your time:    ");
+		printTime(lastPlaythrough);
+	}
+}
+
+void printTime(long seconds) {
+	int v = int(seconds / 60);
 	if (v < 10)
 		lcd.print("0");
 	lcd.print(v);
 	lcd.print(":");
-	v = stats_besttime - v * 60;
+	v = seconds - v * 60;
 	if (v < 10)
 		lcd.print("0");
 	lcd.print(v);
