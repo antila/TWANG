@@ -1,6 +1,7 @@
 // Required libs
 //#include <EEPROM.h>
 //#include <LiquidCrystal.h>
+#define FASTLED_FORCE_SOFTWARE_SPI 0
 #include "FastLED.h"
 #include "I2Cdev.h"
 #include "MPU6050.h"
@@ -32,7 +33,7 @@ int16_t gx, gy, gz;
 #define DATA_PIN                   3
 #define LED_TYPE                   WS2812B
 #define LED_COLOR_ORDER            GRB
-#define BRIGHTNESS                 150
+#define BRIGHTNESS                 170
 #define DIRECTION                  1         // 0 = right to left, 1 = left to right
 #define MIN_REDRAW_INTERVAL        20        // Min redraw interval (ms) 33 = 30fps / 16 = 63fps
 #define USE_GRAVITY                0         // 0/1 use gravity (LED strip going up wall)
@@ -43,7 +44,7 @@ int16_t gx, gy, gz;
 enum Stage { SCREENSAVER, PLAY, COMPLETE, DEAD, WIN, GAMEOVER };
 
 long previousMillis = 0;                   // Time of the last redraw
-int levelNumber =                      4;
+int levelNumber =                      0;
 long lastInputTime = 0;
 #define TIMEOUT                        60000
 #define LEVEL_COUNT                    14
@@ -114,7 +115,7 @@ void setup() {
 	// Fast LED
 	FastLED.addLeds<LED_TYPE, DATA_PIN, LED_COLOR_ORDER>(leds, NUM_LEDS);//.setCorrection(TypicalLEDStrip);
 	FastLED.setBrightness(BRIGHTNESS);
-	//FastLED.setDither(1);
+	FastLED.setDither(0);
 
 	//lcd.begin(20, 4);
 	//updateStats();
@@ -288,7 +289,7 @@ void loadLevel() {
 	playerAlive = 1;
 	switch (levelNumber) {
 	case 0:
-		// Left or right?
+    // Left or right?
 		playerPosition = 200;
 		spawnEnemy(1, 0, 0, 0);
 		//gameStartTime = millis();
@@ -590,7 +591,7 @@ void tickLava() {
 	int A, B, p, i, brightness, flicker;
 	long mm = millis();
 	for (i = 0; i < lavaCount; ++i) {
-		flicker = random8(5);
+		flicker = random8(3);
 		Lava &LP = lavaPool[i];
 		if (LP.Alive()) {
 			A = getLED(LP._left);
@@ -601,7 +602,7 @@ void tickLava() {
 					LP._lastOn = mm;
 				}
 				for (p = A; p <= B; ++p) {
-					leds[p] = CRGB(75 + flicker, 50 + flicker, 0);
+          leds[p].setRGB(30 + flicker, 15 + flicker, 0);
 				}
 			}
 			else {
@@ -609,12 +610,12 @@ void tickLava() {
 					LP._isOn = true;
 					LP._lastOn = mm;
 				}
+        flicker /= 1.75;
 				for (p = A; p <= B; ++p) {
-					leds[p].setRGB(3 + flicker, (3 + flicker) / 1.5, 0);
+					leds[p].setRGB(4 + flicker, (3 + flicker) / 1.75, 0);
 				}
 			}
 		}
-		lavaPool[i] = LP;
 	}
 }
 
