@@ -1,13 +1,11 @@
 // Required libs
 //#include <EEPROM.h>
 //#include <LiquidCrystal.h>
-#define FASTLED_FORCE_SOFTWARE_SPI 0
 #include "FastLED.h"
 #include "I2Cdev.h"
 #include "MPU6050.h"
 #include "Wire.h"
 #include "toneAC.h"
-#include "iSin.h"
 #include "RunningMedian.h"
 
 // Included libs
@@ -33,7 +31,7 @@ int16_t gx, gy, gz;
 #define DATA_PIN                   3
 #define LED_TYPE                   WS2812B
 #define LED_COLOR_ORDER            GRB
-#define BRIGHTNESS                 170
+#define BRIGHTNESS                 250
 #define DIRECTION                  1         // 0 = right to left, 1 = left to right
 #define MIN_REDRAW_INTERVAL        20        // Min redraw interval (ms) 33 = 30fps / 16 = 63fps
 #define USE_GRAVITY                0         // 0/1 use gravity (LED strip going up wall)
@@ -594,7 +592,7 @@ void tickLava() {
 	int A, B, p, i, brightness, flicker;
 	long mm = millis();
 	for (i = 0; i < lavaCount; ++i) {
-		flicker = random8(3);
+		flicker = random8(5);
 		Lava &LP = lavaPool[i];
 		if (LP.Alive()) {
 			A = getLED(LP._left);
@@ -605,7 +603,7 @@ void tickLava() {
 					LP._lastOn = mm;
 				}
 				for (p = A; p <= B; ++p) {
-					leds[p].setRGB(30 + flicker, 15 + flicker, 0);
+					leds[p].setRGB(150 + flicker, 100 + flicker, 0);
 				}
 			}
 			else {
@@ -613,9 +611,8 @@ void tickLava() {
 					LP._isOn = true;
 					LP._lastOn = mm;
 				}
-				flicker /= 1.75;
 				for (p = A; p <= B; ++p) {
-					leds[p].setRGB(4 + flicker, (3 + flicker) / 1.75, 0);
+					leds[p].setRGB(3 + flicker, (3 + flicker) / 1.5, 0);
 				}
 			}
 		}
